@@ -1,0 +1,7 @@
+# Media files
+media/
+.venv/
+*.mp4
+*.onnx
+__pycache__/
+videos/
