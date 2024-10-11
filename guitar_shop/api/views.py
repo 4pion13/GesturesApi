@@ -93,6 +93,16 @@ def create_chat(request):
     return Response({'message': f'Чат с названием - {chat_name} создан!'}, status=status.HTTP_200_OK)
 
 
+
+@api_view(['POST'])
+def delete_chat(request):
+    chat_id = request.data.get('id')
+    chat_history = ChatHistory.objects.get(id = chat_id)
+    chat_history.delete()
+    print('Сработало-', chat_id)
+    return Response({'message': f'Чат с id - {chat_id} удален!'}, status=status.HTTP_200_OK)
+
+
 from django.conf import settings
 @api_view(['POST'])
 def video_process(request):
