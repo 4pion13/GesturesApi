@@ -15,6 +15,7 @@ import numpy as np
 import cv2
 from PIL import Image
 from .constants import classes
+from rest_framework.permissions import IsAuthenticated
 
 
 
@@ -35,28 +36,38 @@ class GuitarList(generics.ListAPIView):
 
 
 from .models import Video
+from rest_framework_simplejwt.authentication import JWTAuthentication
+JWT_authenticator = JWTAuthentication()
+
 class VideoUploadView(generics.CreateAPIView):
+    #permission_classes = [IsAuthenticated]
     queryset = Video.objects.all()
     serializer_class = serializers.VideoSerializer
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        video = serializer.save()
-        file_url = request.build_absolute_uri(video.file.url)
-        file_id = Video.objects.get(file=video.file)
-        return Response({'file_url': file_url, 'file_id':file_id.id}, status=status.HTTP_201_CREATED)
+        res = JWT_authenticator.authenticate(request)
+        if res:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            video = serializer.save()
+            file_url = request.build_absolute_uri(video.file.url)
+            file_id = Video.objects.get(file=video.file)
+            return Response({'file_url': file_url, 'file_id':file_id.id}, status=status.HTTP_201_CREATED)
     
 
 from rest_framework.renderers import JSONRenderer
 from rest_framework.decorators import api_view, renderer_classes
 
+
 @api_view(['GET'])
-#@renderer_classes([JSONRenderer])
 def get_chat_history(request):
-    chat_history = ChatHistory.objects.all()
-    serializer = serializers.ChatSerializer(chat_history, many=True)
-    print(chat_history)
-    return Response({'chat_history': serializer.data}, status=status.HTTP_200_OK)
+    print(request)
+    response = JWT_authenticator.authenticate(request)
+    print(response)
+    if response:
+        chat_history = ChatHistory.objects.all()
+        serializer = serializers.ChatSerializer(chat_history, many=True)
+        print(chat_history)
+        return Response({'chat_history': serializer.data}, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
@@ -125,21 +136,6 @@ def video_process(request):
         mean = [123.675, 116.28, 103.53]
         std = [58.395, 57.12, 57.375]
         def resize(im, new_shape=(224, 224)):
-            """
-            Resize and pad image while preserving aspect ratio.
-
-            Parameters
-            ----------
-            im : np.ndarray
-                Image to be resized.
-            new_shape : Tuple[int]
-                Size of the new image.
-
-            Returns
-            -------
-            np.ndarray
-                Resized image.
-            """
             shape = im.shape[:2]  # current shape [height, width]
             if isinstance(new_shape, int):
                 new_shape = (new_shape, new_shape)
