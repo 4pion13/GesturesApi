@@ -6,19 +6,46 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
+from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.conf import settings
 
 class RegistrationAPIView(APIView):
 
     def post(self, request):
-        print(request.data)
+        data = request.data
+        email = data.get('email', None)
+        password = data.get('password', None)
+        username = data.get('username', None)
+        print(email, username)
+        email_existing_one = User.objects.filter(email = email)
+        if email_existing_one:
+            return Response({'error': 'Пользователь с таким email уже зарегестрирован'},
+                            status=status.HTTP_401_UNAUTHORIZED)
+        
+        username_existing_one = User.objects.filter(username = username)
+        if username_existing_one:
+            return Response({'error': 'Пользователь с таким логином уже зарегестрирован'},
+                            status=status.HTTP_401_UNAUTHORIZED)
+        
         serializer = serializers.CustomUserSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
+            user.set_password(password)  # Шифруем пароль
+            user.save()         
             refresh = RefreshToken.for_user(user) # Создание Refesh и Access
             refresh.payload.update({    # Полезная информация в самом токене
                 'user_id': user.id,
                 'username': user.username
             })
+            send_mail(
+                'Test Subject',
+                f'Ваши данные от аккаунта:\nПароль: {password}\nЛогин:{username}',
+                settings.EMAIL_HOST_USER,
+                [email],
+                fail_silently=False,
+            )
             return Response({
                 'refresh': str(refresh),
                 'access': str(refresh.access_token), # Отправка на клиент
