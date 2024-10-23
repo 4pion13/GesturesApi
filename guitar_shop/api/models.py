@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 class Guitars(models.Model):
     product_id = models.CharField(max_length=1000, blank=True)
@@ -13,6 +14,7 @@ class Video(models.Model):
 
 class ChatHistory(models.Model):
     name = models.CharField(max_length=1000, blank=True)
+    owner = models.ForeignKey(User, on_delete=models.CASCADE)
 
 
 class ChatHistoryData(models.Model):
@@ -20,3 +22,4 @@ class ChatHistoryData(models.Model):
     request = models.ForeignKey(Video, on_delete=models.CASCADE)
     anser = models.CharField(max_length=1000, blank=True)
     save_date = models.DateField(auto_now_add=True)
+    owner = models.ForeignKey(User, on_delete=models.CASCADE)
