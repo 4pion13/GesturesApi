@@ -1,7 +1,7 @@
 
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Guitars, ChatHistory
+from .models import Guitars, ChatHistory, ReportData
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -33,3 +33,10 @@ class ChatData(serializers.ModelSerializer):
     class Meta:
         model = ChatHistory
         fields = '__all__'
+
+
+class ReportData(serializers.ModelSerializer):
+    class Meta:
+        model = ReportData
+        fields = '__all__'
+

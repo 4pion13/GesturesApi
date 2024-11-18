@@ -23,3 +23,13 @@ class ChatHistoryData(models.Model):
     anser = models.CharField(max_length=1000, blank=True)
     save_date = models.DateField(auto_now_add=True)
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
+
+
+class ReportData(models.Model):
+    answer = models.ForeignKey(ChatHistoryData, on_delete=models.CASCADE)
+    answer_text = models.CharField(max_length=1000, blank=True)
+    message = models.CharField(max_length=1000, blank=True)
+    owner = models.ForeignKey(User, on_delete=models.CASCADE)
+    owner_name = models.CharField(max_length=1000, blank=True)
+    comment = models.CharField(max_length=1000, blank=True)
+    status = models.BooleanField()

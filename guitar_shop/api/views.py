@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from . import serializers
 from django.contrib.auth.models import User
-from .models import Guitars, Video, ChatHistory, ChatHistoryData
+from .models import Guitars, Video, ChatHistory, ChatHistoryData, ReportData
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.decorators import api_view
 from rest_framework.views import APIView
@@ -39,10 +39,8 @@ class GuitarList(generics.ListAPIView):
 from .models import Video
 from rest_framework_simplejwt.authentication import JWTAuthentication
 JWT_authenticator = JWTAuthentication()
-
 class VideoUploadView(generics.CreateAPIView):
     #permission_classes = [IsAuthenticated]
-    
     queryset = Video.objects.all()
     serializer_class = serializers.VideoSerializer
     def create(self, request, *args, **kwargs):
@@ -60,6 +58,52 @@ from rest_framework.renderers import JSONRenderer
 from rest_framework.decorators import api_view, renderer_classes
 
 
+# Тестовый запрос
+@api_view(['GET'])
+def get_test(request):
+    print('Данные', request.data)
+    report_data = ReportData.objects.all()
+    print(report_data)
+    serializer = serializers.ReportData(report_data, many=True)
+    return Response({'chat_history': serializer.data}, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+def post_test(request):
+    try:
+        data = request.data  # Получаем JSON-данные как словарь Python
+        # name = data.get("Имя")
+        # age = data.get("Возраст")
+        print(data)
+        print(data[0].get("id"))
+        report_data_update = ReportData.objects.get(id=data[0].get("id"))
+        report_data_update.status = data[0].get("Статус")
+        report_data_update.comment = data[0].get("Комментарий")
+        report_data_update.save()
+    except:
+        print('Не сработало')
+        return Response({'message': 'Не сработало'}, status=status.HTTP_306_RESERVED)
+    return Response({'message': 'Сработало'}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+def get_report_data(request):
+    response = JWT_authenticator.authenticate(request)
+    print(response)
+    if response:
+        try:
+            token = response[1]['user_id']
+            user = User.objects.get(id = token)
+            data = request.data  # Получаем JSON-данные как словарь Python
+            print(data.get('answerId'), data.get('message'))
+            chat_report_data_model = ReportData(message=data.get('message'), answer=ChatHistoryData.objects.get(id=data.get('answerId')), owner_name=user.username, owner=user, status=False, answer_text=ChatHistoryData.objects.get(id=data.get('answerId')).anser)
+            chat_report_data_model.save()
+        except:
+            print('Не сработало')
+            return Response({'message': 'Ошибка отправки'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'message': 'Репорт отправлен'}, status=status.HTTP_200_OK)
+
+
+
 @api_view(['GET'])
 def get_chat_history(request):
     print(request)
@@ -71,7 +115,18 @@ def get_chat_history(request):
         chat_history = ChatHistory.objects.filter(owner=user)
         serializer = serializers.ChatSerializer(chat_history, many=True)
         return Response({'chat_history': serializer.data}, status=status.HTTP_200_OK)
-
+    
+@api_view(['GET'])
+def get_chat_report(request):
+    print(request)
+    response = JWT_authenticator.authenticate(request)
+    print(response)
+    if response:
+        token = response[1]['user_id']
+        user = User.objects.get(id = token)
+        chat_report = ReportData.objects.filter(owner=user)
+        serializer = serializers.ReportData(chat_report, many=True)
+        return Response({'chat_report': serializer.data}, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 def get_chat_data(request):
